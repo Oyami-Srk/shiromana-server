@@ -1,10 +1,11 @@
 #![allow(dead_code, unused)]
+#![feature(async_closure)]
 
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 
-use actix_web::{App, get, HttpRequest, HttpResponse, HttpServer, post, Responder, web};
+use actix_web::{get, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use shiromana_rs::library::Library;
 use shiromana_rs::misc::Uuid;
 use tokio::sync::mpsc::Sender;
@@ -36,16 +37,17 @@ async fn root(data: web::Data<AppState>) -> impl Responder {
 }
 
 #[get("/{api_name}")]
-async fn api_prehandler(req: HttpRequest, web::Path(api_name): web::Path<String>, data: web::Data<AppState>) -> impl Responder {
+async fn api_prehandler(
+    req: HttpRequest,
+    web::Path(api_name): web::Path<String>,
+    data: web::Data<AppState>,
+) -> impl Responder {
     // HttpResponse::Ok().body(format!("Hello from {}, with query param: {}", api_name, req.query_string()))
     api::dispatcher(&api_name, &data, req).await
 }
 
 fn api_service_config(cfg: &mut web::ServiceConfig) {
-    cfg
-        .service(
-            api_prehandler
-        );
+    cfg.service(api_prehandler);
 }
 
 struct TestDrop;
@@ -66,21 +68,16 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .data(
-                AppState {
-                    opened_libraries: opened_libraries.clone(),
-                }
-            )
+            .data(AppState {
+                opened_libraries: opened_libraries.clone(),
+            })
             .service(root)
-            .service(
-                web::scope("/api")
-                    .configure(api_service_config)
-            )
+            .service(web::scope("/api").configure(api_service_config))
     })
-        //.workers(1)
-        .bind(listen_addr)?
-        .run()
-        .await;
+    //.workers(1)
+    .bind(listen_addr)?
+    .run()
+    .await;
     println!("Http server is shutting down.");
     println!("Running clean up routine");
     {
