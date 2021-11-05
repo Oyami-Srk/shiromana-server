@@ -5,6 +5,8 @@ authors = ["Oyami-Srk <hhx.xxm@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.dev]
+split-debuginfo = "unpacked"
 
 [dependencies]
 shiromana-rs = { path = "../shiromana-rs" }
@@ -13,3 +15,7 @@ actix-web = "3"
 qstring = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+env_logger = "0.9.0"
+clap = "2.33.3"
+log = "0.4"
+base64 = "0.13"

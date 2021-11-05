@@ -10,5 +10,7 @@ result=$(curl -s -X GET "$api_url/add_media?uuid=$uuid&path=$current_dir/test/1.
 echo Result: "$result"
 result=$(curl -s -X GET "$api_url/get_media?uuid=$uuid&id=1")
 echo Result: "$result"
+result=$(curl -s -X GET "$api_url/make_thumbnail?uuid=$uuid&id=1")
+echo Result: "$result"
 result=$(curl -s -X GET "$api_url/close_library?uuid=$uuid")
 echo Result: "$result"

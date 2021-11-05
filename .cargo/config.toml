@@ -1,2 +1,5 @@
 [build]
 jobs = 8
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-fuse-ld=/Users/shiroko/Developments/zld"]
