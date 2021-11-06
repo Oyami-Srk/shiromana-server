@@ -1,15 +1,16 @@
 use serde::{Deserialize, Serialize};
+use shiromana_rs::misc::Uuid;
 use std::collections::HashMap;
 
 #[derive(Deserialize, Serialize)]
-enum ServerApiStatus {
+pub enum ServerApiStatus {
     Success,
     PartialSuccess,
     Failed,
 }
 
 #[derive(Deserialize, Serialize)]
-struct ServerMessage {
+pub struct ServerMessage {
     api: String,
     status: ServerApiStatus,
     error: Option<Vec<(String, String)>>,
