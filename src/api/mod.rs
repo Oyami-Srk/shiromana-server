@@ -1,5 +1,6 @@
 mod broker;
 mod error;
+mod message;
 
 use actix_web::web;
 
