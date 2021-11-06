@@ -1,15 +1,16 @@
 use serde::{Deserialize, Serialize};
+use shiromana_rs::misc::Uuid;
 use std::collections::HashMap;
 
 #[derive(Deserialize, Serialize)]
-enum ServerApiStatus {
+pub enum ServerApiStatus {
     Success,
     PartialSuccess,
     Failed,
 }
 
 #[derive(Deserialize, Serialize)]
-struct ServerMessage {
+pub struct ServerMessage {
     api: String,
     status: ServerApiStatus,
     error: Option<Vec<(String, String)>>,
@@ -17,7 +18,10 @@ struct ServerMessage {
     media: Option<u64>,
     format: Option<&'static str>,
     result: Option<String>,
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
     data: HashMap<String, String>,
+    #[serde(skip_serializing)]
+    is_preety: bool,
 }
 
 impl Default for ServerMessage {
@@ -51,8 +55,8 @@ impl ServerMessage {
         }
     }
 
-    pub fn to_json_string(&self, is_pretty: bool) -> String {
-        let possible_result = if is_pretty {
+    pub fn to_json_string(&self) -> String {
+        let possible_result = if self.is_preety {
             serde_json::to_string_pretty(&self)
         } else {
             serde_json::to_string(&self)
@@ -68,5 +72,11 @@ impl ServerMessage {
             api: api_name.into(),
             ..self
         }
+    }
+}
+
+impl Into<String> for ServerMessage {
+    fn into(self) -> String {
+        self.to_json_string()
     }
 }
