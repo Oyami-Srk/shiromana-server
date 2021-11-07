@@ -1,27 +1,28 @@
+use super::error::Result;
 use serde::{Deserialize, Serialize};
 use shiromana_rs::misc::Uuid;
 use std::collections::HashMap;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub enum ServerApiStatus {
     Success,
     PartialSuccess,
     Failed,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct ServerMessage {
-    api: String,
-    status: ServerApiStatus,
-    error: Option<Vec<(String, String)>>,
-    library: Option<Uuid>,
-    media: Option<u64>,
-    format: Option<&'static str>,
-    result: Option<String>,
+    pub api: String,
+    pub status: ServerApiStatus,
+    pub error: Option<Vec<(String, String)>>,
+    pub library: Option<Uuid>,
+    pub media: Option<u64>,
+    pub format: Option<&'static str>,
+    pub result: Option<String>,
     #[serde(skip_serializing_if = "HashMap::is_empty")]
-    data: HashMap<String, String>,
+    pub data: HashMap<String, String>,
     #[serde(skip_serializing)]
-    is_preety: bool,
+    pub is_preety: bool,
 }
 
 impl Default for ServerMessage {
@@ -35,6 +36,7 @@ impl Default for ServerMessage {
             format: None,
             result: None,
             data: HashMap::new(),
+            is_preety: true,
         }
     }
 }
@@ -52,6 +54,22 @@ impl ServerMessage {
             library,
             media,
             ..Self::default()
+        }
+    }
+
+    pub fn with_single_error<S1: Into<String>, S2: Into<String>>(
+        self,
+        at: S1,
+        detail: S2,
+        library: Option<Uuid>,
+        media: Option<u64>,
+    ) -> Self {
+        Self {
+            status: ServerApiStatus::Failed,
+            error: Some(vec![(at.into(), detail.into())]),
+            library,
+            media,
+            ..self
         }
     }
 
@@ -80,3 +98,13 @@ impl Into<String> for ServerMessage {
         self.to_json_string()
     }
 }
+
+/*
+impl From<Result<ServerMessage>> for ServerMessage {
+    fn from(result: Result<ServerMessage>) -> Self {
+        match result {
+            Ok(v) => v,
+            Err(e) =>
+        }
+    }
+} */

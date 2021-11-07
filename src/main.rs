@@ -55,13 +55,16 @@ async fn api_prehandler(
     web::Path(api_name): web::Path<String>,
     data: web::Data<AppState>,
 ) -> impl Responder {
-    // HttpResponse::Ok().body(format!("Hello from {}, with query param: {}", api_name, req.query_string()))
     info!(
         "Request api {} with method {}.",
         api_name,
         req.method().as_str()
     );
-    api::dispatcher(&api_name, &data, req).await
+    HttpResponse::Ok().body(format!(
+        "Hello from {}, with query param: {}",
+        api_name,
+        req.query_string()
+    ))
 }
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -107,7 +110,7 @@ async fn main() -> std::io::Result<()> {
                 opened_libraries: opened_libraries.clone(),
             })
             .service(root)
-            .service(web::scope("/api").configure(api_service_config))
+            .service(web::scope("/api").configure(api::service_config))
     })
     //.workers(1)
     .bind(listen_addr)?

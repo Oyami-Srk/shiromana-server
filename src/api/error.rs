@@ -7,6 +7,12 @@ pub enum Error {
         expect: String,
     },
     LibraryNotOpened(Uuid),
+    NoParam(String),
+    ParamInvalid {
+        got: String,
+        field: String,
+        expect: String,
+    },
 }
 
 impl std::fmt::Display for Error {
@@ -18,6 +24,12 @@ impl std::fmt::Display for Error {
                 field, got, expect
             ),
             Self::LibraryNotOpened(lib) => write!(f, "Library `{}` is not opened.", lib),
+            Self::NoParam(what) => write!(f, "Params {} not provided.", what),
+            Self::ParamInvalid { got, field, expect } => write!(
+                f,
+                "Param `{}` with value `{}` cannot be parsed to `{}`.",
+                field, got, expect
+            ),
         }
     }
 }
