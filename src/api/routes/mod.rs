@@ -1,27 +1,19 @@
-use log::info;
-use std::collections::HashMap;
-use std::process;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::{io, path};
-use tokio::sync::Mutex;
+mod library;
 
-use actix_web::error::PayloadError::Http2Payload;
-use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
-use qstring::QString;
-use serde::{Deserialize, Serialize};
-use shiromana_rs::library::{Library, LibraryFeatures};
-use shiromana_rs::media::{Media, MediaType};
-use shiromana_rs::misc::{Error as LibError, Uuid};
-use tokio::sync::mpsc::Sender;
+pub(crate) use super::super::AppState;
+pub(crate) use super::error::{Error, Result};
+pub(crate) use super::message::{ServerApiStatus, ServerMessage};
+pub(crate) use actix_web::{web, HttpRequest, HttpResponse, Responder};
+pub(crate) use qstring::QString;
+pub(crate) use shiromana_rs::misc::Uuid;
+pub(crate) use std::collections::HashMap;
+pub(crate) use std::str::FromStr;
+pub(crate) use std::stringify;
+pub(crate) use std::sync::Arc;
+pub(crate) use std::{io, path};
+pub(crate) use tokio::sync::Mutex;
 
-use super::super::AppState;
-use super::error::{Error, Result};
-use super::message::{ServerApiStatus, ServerMessage};
-use paste::paste;
-use std::stringify;
-
-fn get_param<T>(params: &QString, key: &str) -> Result<T>
+pub fn get_param<T>(params: &QString, key: &str) -> Result<T>
 where
     T: FromStr,
 {
@@ -38,7 +30,7 @@ where
     }
 }
 
-fn get_param_option<T>(params: &QString, key: &str) -> Result<Option<T>>
+pub fn get_param_option<T>(params: &QString, key: &str) -> Result<Option<T>>
 where
     T: FromStr,
 {
@@ -50,7 +42,21 @@ where
 }
 
 macro_rules! generate_api_broker {
-    ($name: ident, $method: ident, $route: expr, $body: expr) => {
+    ($name: ident, $method: ident, $route: expr, ($($arg:ident:$typ:ty),*) -> $rt:ty, $body: block) => {
+        paste::paste!{
+            async fn [<perform_ $name>](
+                /*
+                library_uuid: Option<Uuid>,
+                opened_libraries: &Arc<Mutex<HashMap<Uuid, Library>>>,
+                action: &str,
+                params: QString,
+                msg: ServerMessage
+                */
+                $($arg:$typ,)*
+            ) -> $rt // Result<ServerMessage>
+            $body
+        }
+
         #[$method($route)]
         pub async fn $name(
             req: HttpRequest,
@@ -85,15 +91,9 @@ macro_rules! generate_api_broker {
                 None => None
             };
 
-            let func: fn(
-                Option<Uuid>,
-                &Arc<Mutex<HashMap<Uuid, Library>>>,
-                &str,
-                QString,
-                ServerMessage
-            ) -> Result<ServerMessage> = $body;
+            let result = paste::paste!([<perform_ $name>])(library_uuid, &data.opened_libraries, stringify!($name), qs, server_msg.clone()).await;
 
-            match func(library_uuid, &data.opened_libraries, stringify!($name), qs, server_msg.clone()) {
+            match result {
                 Ok(v) => HttpResponse::Ok().body(v.to_json_string()),
                 Err(e) => HttpResponse::BadRequest().body(
                     server_msg.with_single_error("action", e.to_string(), library_uuid, None).to_json_string()
@@ -103,26 +103,19 @@ macro_rules! generate_api_broker {
     };
 }
 
-fn perform_action(
-    library_uuid: Option<Uuid>,
-    opened_libraries: &Arc<Mutex<HashMap<Uuid, Library>>>,
-    action: &str,
-    params: QString,
-    msg: ServerMessage,
-) -> Result<ServerMessage> {
-    info!("Nice, a request to {}", action);
-    Ok(msg)
+macro_rules! register_services {
+    ( $( $x: ident),* ) => {
+        pub fn services(cfg: &mut web::ServiceConfig) {
+            $(
+                cfg.service($x);
+            )*
+        }
+    };
 }
 
-generate_api_broker!(
-    get_media,
-    get,
-    "get_media",
-    |library_uuid, opened_libraries, action, params, msg| {
-        let msg = ServerMessage {
-            api: "hitest".to_string(),
-            ..msg
-        };
-        Ok(msg)
-    }
-);
+pub(crate) use generate_api_broker;
+pub(crate) use register_services;
+
+pub fn services(cfg: &mut web::ServiceConfig) {
+    library::services(cfg);
+}

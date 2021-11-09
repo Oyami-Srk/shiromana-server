@@ -1,10 +1,15 @@
-mod broker;
 mod error;
 mod message;
+mod routes;
 
-use actix_web::web;
+use actix_web::{
+    dev::HttpServiceFactory,
+    http::header::HttpDate,
+    web::{self, ServiceConfig},
+    HttpRequest, HttpResponse,
+};
 
 pub fn service_config(cfg: &mut web::ServiceConfig) {
-    // cfg.service(web::scope("test").service(api_prehandler));
-    cfg.service(broker::get_media);
+    // cfg.service(broker::media_get);
+    routes::services(cfg);
 }

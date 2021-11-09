@@ -1,4 +1,4 @@
-use shiromana_rs::misc::Uuid;
+use shiromana_rs::{library::Library, misc::Error as LibError, misc::Uuid};
 
 pub enum Error {
     NotExisted {
@@ -13,6 +13,7 @@ pub enum Error {
         field: String,
         expect: String,
     },
+    LibraryError(LibError),
 }
 
 impl std::fmt::Display for Error {
@@ -30,8 +31,15 @@ impl std::fmt::Display for Error {
                 "Param `{}` with value `{}` cannot be parsed to `{}`.",
                 field, got, expect
             ),
+            Self::LibraryError(err) => write!(f, "Library Error: {}", err),
         }
     }
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<LibError> for Error {
+    fn from(err: LibError) -> Self {
+        Self::LibraryError(err)
+    }
+}
