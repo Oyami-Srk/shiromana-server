@@ -1,4 +1,5 @@
 use super::error::Result;
+use paste::paste;
 use serde::{Deserialize, Serialize};
 use shiromana_rs::misc::Uuid;
 use std::collections::HashMap;
@@ -14,10 +15,15 @@ pub enum ServerApiStatus {
 pub struct ServerMessage {
     pub api: String,
     pub status: ServerApiStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<Vec<(String, String)>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub library: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub media: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub format: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<String>,
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     pub data: HashMap<String, String>,
@@ -39,6 +45,30 @@ impl Default for ServerMessage {
             is_preety: true,
         }
     }
+}
+
+macro_rules! generate_with_function {
+    ($name: ident, $type: ty) => {
+        paste! {
+            pub fn [<with_ $name>]<F: Into<$type>>(self, v: F) -> Self {
+                Self {
+                    $name: v.into(),
+                    ..self
+                }
+            }
+        }
+    };
+
+    ($name: ident, $type: ty, $process: ident) => {
+        paste! {
+            pub fn [<with_ $name>]<F: Into<$type>>(self, v: F) -> Self {
+                Self {
+                    $name: $process(v.into()),
+                    ..self
+                }
+            }
+        }
+    };
 }
 
 impl ServerMessage {
@@ -85,12 +115,25 @@ impl ServerMessage {
         }
     }
 
-    pub fn with_api_name(self, api_name: &str) -> Self {
+    pub fn with_pretty_json(self) -> Self {
         Self {
-            api: api_name.into(),
+            is_preety: true,
             ..self
         }
     }
+
+    pub fn without_pretty_json(self) -> Self {
+        Self {
+            is_preety: false,
+            ..self
+        }
+    }
+
+    generate_with_function!(api, String);
+    generate_with_function!(library, Uuid, Some);
+    generate_with_function!(media, u64, Some);
+    generate_with_function!(result, String, Some);
+    generate_with_function!(format, &'static str, Some);
 }
 
 impl Into<String> for ServerMessage {

@@ -13,6 +13,10 @@ pub enum Error {
         field: String,
         expect: String,
     },
+    AlreadyExisted {
+        got: String,
+        field: String,
+    },
     LibraryError(LibError),
 }
 
@@ -21,8 +25,13 @@ impl std::fmt::Display for Error {
         match self {
             Self::NotExisted { got, field, expect } => write!(
                 f,
-                "Field {}: `{}` is not exists on the disk of server. Or it is not a {}.",
+                "Field {}: `{}` is not existed on the disk of server. Or it is not a {}.",
                 field, got, expect
+            ),
+            Self::AlreadyExisted { got, field } => write!(
+                f,
+                "Field {}: `{}` is already existed on the disk of server.",
+                field, got
             ),
             Self::LibraryNotOpened(lib) => write!(f, "Library `{}` is not opened.", lib),
             Self::NoParam(what) => write!(f, "Params {} not provided.", what),

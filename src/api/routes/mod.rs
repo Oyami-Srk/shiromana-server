@@ -119,8 +119,16 @@ macro_rules! register_services {
     };
 }
 
+macro_rules! take_mutex {
+    ($v:ident, $body: block) => {{
+        let mut $v = $v.lock().await;
+        $body
+    };};
+}
+
 pub(crate) use generate_api_broker;
 pub(crate) use register_services;
+pub(crate) use take_mutex;
 
 pub fn services(cfg: &mut web::ServiceConfig) {
     library::services(cfg);

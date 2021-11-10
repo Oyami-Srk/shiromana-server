@@ -28,15 +28,11 @@ generate_api_broker!(library_open, get, "library/open",
         }
         let lib = Library::open(path)?;
         let lib_uuid = lib.uuid.clone();
-        {
-            let mut opened_libraries = opened_libraries.lock().await;
+        take_mutex!(opened_libraries, {
             let uuid = lib.uuid.clone();
             opened_libraries.insert(uuid, lib);
-        }
-        Ok(ServerMessage {
-            library: Some(lib_uuid),
-            ..msg
-        })
+        });
+        Ok(msg.with_library(lib_uuid))
 });
 
 generate_api_broker!(library_close, get, "library/close",
@@ -53,10 +49,7 @@ generate_api_broker!(library_close, get, "library/close",
             if opened_libraries.contains_key(&library_uuid) {
                 if let Some(v) = opened_libraries.remove(&library_uuid) {
                     drop(v);
-                    Ok(ServerMessage {
-                        library: Some(library_uuid),
-                        ..msg
-                    })
+                    Ok(msg.with_library(library_uuid))
                 } else {
                     Ok(msg.with_single_error("library", "Cannot remove opened library.", Some(library_uuid), None))
                 }
@@ -77,7 +70,28 @@ generate_api_broker!(library_create, get, "library/create",
         msg: ServerMessage
     ) -> Result<ServerMessage>,
     {
-        Ok(msg)
+        let path: String = get_param(&params, "path")?;
+        if PathBuf::from(&path).exists() {
+            return Err(Error::AlreadyExisted{got: path, field: "path".to_string()})
+        }
+
+        let features = match get_param_option::<String>(&params, "features")? {
+            Some(s) => LibraryFeatures::from_str(s.as_str())?,
+            None => LibraryFeatures::new()
+        };
+
+        let lib = Library::create(
+            path,
+            get_param(&params,"name")?,
+            get_param_option(&params, "master")?,
+            get_param_option(&params, "media_folder")?,
+            features
+        )?;
+        let uuid = lib.uuid.clone();
+        take_mutex!(opened_libraries, {
+            opened_libraries.insert(lib.uuid, lib);
+        });
+        Ok(msg.with_library(uuid))
 });
 
 register_services!(library_open, library_close);
