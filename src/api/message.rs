@@ -80,8 +80,8 @@ impl ServerMessage {
             serde_json::to_string(&self)
         };
         match possible_result {
-            Ok(v) => v,
-            Err(e) => format!(r#"{{"api": "server", "status": "Failed", "error": [["server side cannot serialize message json": "{}"]]}}"#, e).to_string()
+            Ok(v) => v + "\n",
+            Err(e) => format!(r#"{{"api": "server", "status": "Failed", "error": [["server side cannot serialize message json": "{}"]]}}\n"#, e).to_string()
         }
     }
 

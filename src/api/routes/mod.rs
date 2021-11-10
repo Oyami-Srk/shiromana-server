@@ -64,7 +64,7 @@ macro_rules! generate_api_broker {
         ) -> impl Responder {
             let qs = QString::from(req.query_string());
             let server_msg = ServerMessage {
-                api: stringify!($name).to_string(),
+                api: $route.to_string(),//stringify!($name).to_string(),
                 is_preety: match qs.get("pretty").unwrap_or("true").to_lowercase().as_str() {
                     "false" => false,
                     "true" => true,
@@ -94,7 +94,13 @@ macro_rules! generate_api_broker {
             let result = paste::paste!([<perform_ $name>])(library_uuid, &data.opened_libraries, stringify!($name), qs, server_msg.clone()).await;
 
             match result {
-                Ok(v) => HttpResponse::Ok().body(v.to_json_string()),
+                Ok(v) => {
+                    if let(ServerApiStatus::Success) = v.status {
+                        HttpResponse::Ok().body(v.to_json_string())
+                    } else {
+                        HttpResponse::BadRequest().body(v.to_json_string())
+                    }
+                },
                 Err(e) => HttpResponse::BadRequest().body(
                     server_msg.with_single_error("action", e.to_string(), library_uuid, None).to_json_string()
                 )

@@ -1,0 +1,20 @@
+{
+	"generate_api_broker": {
+		"scope": "rust",
+		"prefix": "api",
+		"body": [
+			"generate_api_broker!(${name}, ${method}, \"${route}\",",
+			"\t(",
+			"\t\tlibrary_uuid: Option<Uuid>,",
+			"\t\topened_libraries: &Arc<Mutex<HashMap<Uuid, Library>>>,",
+			"\t\taction: &str,",
+			"\t\tparams: QString,",
+			"\t\tmsg: ServerMessage",
+			"\t) -> Result<ServerMessage>,",
+			"\t{",
+			"$0",
+			"});"
+		],
+		"description": "Generate Api Broker for Actix"
+	}
+}
