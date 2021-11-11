@@ -18,6 +18,8 @@ pub enum Error {
         field: String,
     },
     LibraryError(LibError),
+    IOError(std::io::Error),
+    SerializeError(serde_json::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -41,6 +43,8 @@ impl std::fmt::Display for Error {
                 field, got, expect
             ),
             Self::LibraryError(err) => write!(f, "Library Error: {}", err),
+            Self::IOError(err) => write!(f, "IO Error: {}", err),
+            Self::SerializeError(err) => write!(f, "Serialize Error: {}", err),
         }
     }
 }
@@ -50,5 +54,17 @@ pub type Result<T> = std::result::Result<T, Error>;
 impl From<LibError> for Error {
     fn from(err: LibError) -> Self {
         Self::LibraryError(err)
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
+        Self::IOError(err)
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(err: serde_json::Error) -> Self {
+        Self::SerializeError(err)
     }
 }

@@ -1,4 +1,5 @@
 mod library;
+mod media;
 
 pub(crate) use super::super::AppState;
 pub(crate) use super::error::{Error, Result};
@@ -38,6 +39,22 @@ where
         Ok(v) => Ok(Some(v)),
         Err(Error::NoParam(_)) => Ok(None),
         Err(e) => Err(e),
+    }
+}
+
+pub fn get_param_bool(params: &QString, key: &str) -> Result<bool> {
+    if params.has(key) {
+        match params.get(key).unwrap() {
+            "false" => Ok(false),
+            "true" => Ok(true),
+            _ => Err(Error::ParamInvalid {
+                got: params.get(key).unwrap().into(),
+                expect: "bool".into(),
+                field: key.into(),
+            }),
+        }
+    } else {
+        Ok(false)
     }
 }
 
@@ -90,15 +107,20 @@ macro_rules! generate_api_broker {
                 },
                 None => None
             };
+            let server_msg = ServerMessage{
+                library: library_uuid,
+                ..server_msg
+            };
 
             let result = paste::paste!([<perform_ $name>])(library_uuid, &data.opened_libraries, stringify!($name), qs, server_msg.clone()).await;
 
             match result {
                 Ok(v) => {
-                    if let(ServerApiStatus::Success) = v.status {
-                        HttpResponse::Ok().body(v.to_json_string())
-                    } else {
-                        HttpResponse::BadRequest().body(v.to_json_string())
+                    match v.status {
+                        ServerApiStatus::Success | ServerApiStatus::PartialSuccess =>
+                            HttpResponse::Ok().body(v.to_json_string()),
+                        ServerApiStatus::Failed =>
+                            HttpResponse::BadRequest().body(v.to_json_string())
                     }
                 },
                 Err(e) => HttpResponse::BadRequest().body(
@@ -123,7 +145,7 @@ macro_rules! take_mutex {
     ($v:ident, $body: block) => {{
         let mut $v = $v.lock().await;
         $body
-    };};
+    }};
 }
 
 pub(crate) use generate_api_broker;
@@ -132,4 +154,5 @@ pub(crate) use take_mutex;
 
 pub fn services(cfg: &mut web::ServiceConfig) {
     library::services(cfg);
+    media::services(cfg);
 }

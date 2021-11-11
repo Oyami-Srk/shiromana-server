@@ -4,7 +4,7 @@ use log::info;
 use std::{io, path::PathBuf};
 use tokio::sync::Mutex;
 
-use actix_web::get;
+use actix_web::{get, post};
 use shiromana_rs::library::{Library, LibraryFeatures};
 use shiromana_rs::media::{Media, MediaType};
 use shiromana_rs::misc::{Error as LibError, Uuid};
@@ -35,7 +35,7 @@ generate_api_broker!(library_open, get, "library/open",
         Ok(msg.with_library(lib_uuid))
 });
 
-generate_api_broker!(library_close, get, "library/close",
+generate_api_broker!(library_close, post, "library/close",
     (
         library_uuid: Option<Uuid>,
         opened_libraries: &Arc<Mutex<HashMap<Uuid, Library>>>,
@@ -49,9 +49,15 @@ generate_api_broker!(library_close, get, "library/close",
             if opened_libraries.contains_key(&library_uuid) {
                 if let Some(v) = opened_libraries.remove(&library_uuid) {
                     drop(v);
-                    Ok(msg.with_library(library_uuid))
+                    // Ok(msg.with_library(library_uuid))
+                    Ok(msg)
                 } else {
-                    Ok(msg.with_single_error("library", "Cannot remove opened library.", Some(library_uuid), None))
+                    Ok(msg.with_single_error(
+                        "library",
+                        "Cannot remove opened library.",
+                        Some(library_uuid),
+                        None
+                    ))
                 }
             } else {
                 Err(Error::LibraryNotOpened(library_uuid))
@@ -72,7 +78,10 @@ generate_api_broker!(library_create, get, "library/create",
     {
         let path: String = get_param(&params, "path")?;
         if PathBuf::from(&path).exists() {
-            return Err(Error::AlreadyExisted{got: path, field: "path".to_string()})
+            return Err(Error::AlreadyExisted{
+                got: path,
+                field: "path".to_string()
+            })
         }
 
         let features = match get_param_option::<String>(&params, "features")? {
@@ -94,4 +103,4 @@ generate_api_broker!(library_create, get, "library/create",
         Ok(msg.with_library(uuid))
 });
 
-register_services!(library_open, library_close);
+register_services!(library_open, library_close, library_create);

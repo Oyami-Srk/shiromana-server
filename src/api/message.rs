@@ -103,6 +103,22 @@ impl ServerMessage {
         }
     }
 
+    pub fn with_single_error_but_partial_success<S1: Into<String>, S2: Into<String>>(
+        self,
+        at: S1,
+        detail: S2,
+        library: Option<Uuid>,
+        media: Option<u64>,
+    ) -> Self {
+        Self {
+            status: ServerApiStatus::PartialSuccess,
+            error: Some(vec![(at.into(), detail.into())]),
+            library,
+            media,
+            ..self
+        }
+    }
+
     pub fn to_json_string(&self) -> String {
         let possible_result = if self.is_preety {
             serde_json::to_string_pretty(&self)
