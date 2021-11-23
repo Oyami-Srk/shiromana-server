@@ -1,1 +1,2 @@
 Using ETag to do cache-control
+Add mime-type field to Shiromana-rs

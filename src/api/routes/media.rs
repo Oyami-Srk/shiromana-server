@@ -3,9 +3,20 @@ use super::*;
 use actix_web::{get, post};
 use mime::Mime;
 use mime_sniffer::MimeTypeSniffer;
+use serde::Serialize;
 use shiromana_rs::library::Library;
 use shiromana_rs::media::{Media, MediaType};
+use shiromana_rs::misc::Error as LibError;
 use std::io::prelude::*;
+
+#[derive(Serialize)]
+struct MediaQueryResult {
+    id: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    media: Option<Media>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
 
 generate_api_broker!(media_get, get, "media/get",
     (
@@ -24,7 +35,7 @@ generate_api_broker!(media_get, get, "media/get",
                 .ok_or_else(|| Error::LibraryNotOpened(library_uuid))?;
             lib.get_media(id)
         })?;
-        Ok(msg.with_media(id).with_result(serde_json::to_string(&media)?))
+        Ok(msg.with_media(id).with_result(serde_json::to_string(&media)?).with_format("json"))
 });
 
 generate_api_broker!(media_add, post, "media/add",
@@ -144,4 +155,46 @@ generate_api_broker!(media_update, post, "media/update",
         Ok(msg.with_media(id))
 });
 
-register_services!(media_get, media_add, media_remove, media_update);
+generate_api_broker!(media_query, get, "media/query",
+    (
+        library_uuid: Option<Uuid>,
+        opened_libraries: &Arc<Mutex<HashMap<Uuid, Library>>>,
+        action: &str,
+        params: QString,
+        msg: ServerMessage
+    ) -> Result<ServerMessage>,
+    {
+         let library_uuid = library_uuid
+            .ok_or_else(|| Error::NoParam("Library".into()))?;
+        let q:String = get_param(&params, "q")?;
+        let results = take_mutex!(opened_libraries, {
+            let lib = opened_libraries.get(&library_uuid)
+                .ok_or_else(|| Error::LibraryNotOpened(library_uuid))?;
+            let ids = lib.query_media(q.as_str())?;
+            lib.get_medias(ids.into_iter())
+        });
+        let results = results.into_iter().map(|(id, media)| {
+            match media {
+                Ok(media) => MediaQueryResult {
+                    id,
+                    media: Some(media),
+                    error: None
+                },
+                Err(e) => MediaQueryResult {
+                    id,
+                    media: None,
+                    error: Some(e.to_string())
+                }
+            }
+        }).collect::<Vec<_>>();
+
+        Ok(msg.with_format("json").with_serialized_result(&results)?)
+});
+
+register_services!(
+    media_get,
+    media_add,
+    media_remove,
+    media_update,
+    media_query
+);

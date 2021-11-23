@@ -20,6 +20,7 @@ pub enum Error {
     LibraryError(LibError),
     IOError(std::io::Error),
     SerializeError(serde_json::Error),
+    MultithreadError(Box<dyn std::error::Error + Sync + Send>),
 }
 
 impl std::fmt::Display for Error {
@@ -45,6 +46,7 @@ impl std::fmt::Display for Error {
             Self::LibraryError(err) => write!(f, "Library Error: {}", err),
             Self::IOError(err) => write!(f, "IO Error: {}", err),
             Self::SerializeError(err) => write!(f, "Serialize Error: {}", err),
+            Self::MultithreadError(err) => write!(f, "Multithrad Error: {}", err)
         }
     }
 }
@@ -66,5 +68,11 @@ impl From<std::io::Error> for Error {
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Self {
         Self::SerializeError(err)
+    }
+}
+
+impl From<std::sync::mpsc::RecvError> for Error {
+    fn from(err: std::sync::mpsc::RecvError) -> Self {
+        Self::MultithreadError(Box::new(err))
     }
 }

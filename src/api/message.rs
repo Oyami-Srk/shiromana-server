@@ -2,7 +2,7 @@ use super::error::Result;
 use paste::paste;
 use serde::{Deserialize, Serialize};
 use shiromana_rs::misc::Uuid;
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::read_to_string};
 
 #[derive(Deserialize, Serialize, Clone)]
 pub enum ServerApiStatus {
@@ -146,10 +146,21 @@ impl ServerMessage {
     }
 
     generate_with_function!(api, String);
+    generate_with_function!(data, HashMap<String, String>);
     generate_with_function!(library, Uuid, Some);
     generate_with_function!(media, u64, Some);
     generate_with_function!(result, String, Some);
     generate_with_function!(format, &'static str, Some);
+
+    pub fn with_serialized_result<T: serde::Serialize>(self, v: &T) -> Result<Self> {
+        Ok(Self {
+            result: Some(match self.is_preety {
+                true => serde_json::to_string_pretty(v)?,
+                false => serde_json::to_string(v)?,
+            }),
+            ..self
+        })
+    }
 }
 
 impl Into<String> for ServerMessage {

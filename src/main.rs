@@ -16,6 +16,7 @@ use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 
 mod api;
+mod versions;
 
 pub struct AppState {
     pub opened_libraries: Arc<Mutex<HashMap<Uuid, Library>>>,

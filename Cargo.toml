@@ -12,6 +12,7 @@ split-debuginfo = "unpacked"
 shiromana-rs = { path = "../shiromana-rs" }
 tokio = { version = "1", features = ["full"] }
 actix-web = "3"
+actix-files = "0.5"
 qstring = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -22,3 +23,6 @@ base64 = "0.13"
 paste = "1.0"
 mime-sniffer = "0.1"
 mime = "0.3"
+
+[build-dependencies]
+toml = "0.2"
